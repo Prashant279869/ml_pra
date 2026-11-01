@@ -1,0 +1,345 @@
+CNN:-
+
+from keras.datasets import mnist 
+from keras.utils import to_categorical 
+from keras.models import Sequential 
+from keras.layers import Dense,Conv2D,Flatten 
+import matplotlib.pyplot as plt 
+
+(X_train,Y_train),(X_test,Y_test)=mnist.load_data() 
+plt.imshow(X_train[0])  
+plt.show() 
+print(X_train[0].shape)
+X_train=X_train.reshape(60000,28,28,1) 
+X_test=X_test.reshape(10000,28,28,1) 
+Y_train=to_categorical(Y_train)  
+Y_test=to_categorical(Y_test) 
+(Y_train[0]) 
+print(Y_train[0]) 
+model=Sequential() 
+model.add(Conv2D(64,kernel_size=3,activation='relu',input_shape=(28,28,1))) 
+model.add(Conv2D(32,kernel_size=3,activation='relu')) 
+model.add(Flatten())
+model.add(Dense(10,activation='softmax')) 
+model.compile(optimizer='adam',loss='categorical_crossentropy',metrics=['accuracy']) 
+model.fit(X_train,Y_train,validation_data=(X_test,Y_test),epochs=3) 
+print(model.predict(X_test[:4])) 
+print(Y_test[:4]) 
+
+
+Genetic Algo:-
+
+!pip install pygad
+
+import pygad
+import numpy as np
+
+X=[4,-2,3.5,5,-11,-4.7] 
+desired_output=44 # Actual Output 
+ 
+def fitness_function(ga_instance,solution,solution_idx): 
+   output=np.sum(solution*X)  
+   fitness=1.0/np.abs(output-desired_output)  
+   return fitness 
+
+ga_instance=pygad.GA(num_generations=50, 
+   num_parents_mating=8,  
+   fitness_func=fitness_function, 
+   sol_per_pop=8, 
+   num_genes=len(X), 
+   init_range_low=-2, init_range_high=5, 
+   parent_selection_type="sss", 
+   keep_parents=1, 
+   crossover_type="single_point", 
+   mutation_type="random", 
+   mutation_percent_genes=10) 
+
+ga_instance.run() 
+solution,solution_fitness,solution_idx=ga_instance.best_solution() 
+print("Solution = ",solution) 
+print("Fitness = ",solution_fitness) 
+# Fitness is reciprocal of error 
+print("Solution IDX = ",solution_idx)
+
+
+Langchain:-
+
+#!pip install -U langchain langchain-core langchain-groq pydantic
+
+import os
+from langchain_groq import ChatGroq
+from langchain_core.messages import HumanMessage, ToolMessage
+from langchain.tools import tool
+os.environ["GROQ_API_KEY"] = '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'
+
+@tool #provided by langchain.tools
+
+def calculate_stock_math(amount: float, percent_change: float) -> float:
+  """Calculate the new value of a stock after a percentage change.""" #Message passed to llm model as for when to use something
+  return amount * (1 + (percent_change / 100))
+
+#Main Base RAG Model
+llm = ChatGroq(model = "openai/gpt-oss-20b", temperature = 0)
+llm_with_tools = llm.bind_tools([calculate_stock_math])
+
+#Main function
+def run_agent(question):
+  messages = [HumanMessage(content = question)]
+  ai_msg = llm_with_tools.invoke(messages) #Main RAG baseed agent
+  messages.append(ai_msg)
+  if ai_msg.tool_calls:
+    for tool_call in ai_msg.tool_calls:
+      if tool_call['name'] == "calculate_stock_math":
+        result = calculate_stock_math.invoke(tool_call['args'])
+        messages.append(ToolMessage(content = str(result), tool_call_id = tool_call['id']))
+
+    final_response = llm_with_tools.invoke(messages)
+    return final_response.content
+
+  else:
+    return ai_msg.content
+
+print("Agent is thinking.........")
+answer = run_agent("If my $1000 stock goes up by 15.5%, what is the worth?")
+print("\nFINAL ANSWER:", answer)
+answer2 = run_agent("Define stock")
+print(answer2)
+
+
+
+
+
+Movie reccomdeation:-
+
+
+import pandas as pd
+import numpy as np
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.feature_extraction.text import CountVectorizer
+
+#Write your  movie Dataset Path
+df = pd.read_csv("/movies1.csv")
+df
+
+df.columns
+df.shape
+
+features =[ 'genres', 'keywords', 'tagline', 'cast', 'director']
+for feature in features:
+    df[feature] = df[feature].fillna('')
+df
+
+def combined_features(row):
+    return row['genres']+" "+row['keywords']+" "+row['tagline']+" "+row['cast']+" "+row['director']
+df["combined_features"] = df.apply(combined_features, axis =1)
+df['combined_features']
+
+df['combined_features'].head()
+df['combined_features'].iloc[1]
+
+cv = CountVectorizer()
+count_matrix = cv.fit_transform(df['combined_features'])
+count_matrix.toarray()
+
+count_matrix.shape
+cosine_sin = cosine_similarity(count_matrix)
+cosine_sin
+
+df[df.title == "Spider-Man 3"]
+movies_user_likes = "Spider-Man 3"
+def get_index_from_title(title):
+    return df[df.title == title]["index"].values[0]
+movie_index = get_index_from_title(movies_user_likes)
+movie_index
+
+similar_movies = list(enumerate(cosine_sin[movie_index]))
+similar_movies
+
+sorted_similar_movies = sorted(similar_movies, key=lambda x:x[1], reverse=True)
+sorted_similar_movies
+
+def get_title_from_index(index):
+    return df[df.index == index]["title"].values[0]
+i=0
+for movie in sorted_similar_movies:
+    print(get_title_from_index(movie[0]))
+    i=i+1
+    if (i>10):
+      break
+
+
+
+
+Neural network:-
+
+from sklearn.datasets import fetch_california_housing 
+data = fetch_california_housing() 
+import pandas as pd 
+df = pd.DataFrame (data.data, columns = data.feature_names) 
+df.shape 
+df.head(2) 
+df['Target']= data.target 
+df.shape 
+df.head(2) 
+x= df.iloc[:,:-1] 
+y= df.iloc[:,-1] 
+from sklearn.model_selection import train_test_split 
+xtrain, xtest, ytrain, ytest = train_test_split(x,y, test_size = 0.3, random_state = 42) 
+xtrain.shape, xtest.shape, ytrain.shape, ytest.shape 
+from keras.models import Sequential 
+from keras.layers import Dense 
+nn = Sequential() 
+nn.add(Dense(12, input_dim = 8, activation='relu')) 
+nn.add(Dense(10, activation = 'relu')) 
+nn.add(Dense(1, activation = 'linear')) 
+nn.compile(loss='mae', optimizer="adam", metrics=['mse']) 
+nn.fit(xtrain, ytrain, batch_size=100, epochs = 500) 
+predictions = nn.predict(xtest) 
+from sklearn.metrics import mean_absolute_error 
+mean_absolute_error(ytest, predictions)
+
+
+
+
+Reinforcement:-
+
+import numpy as np 
+ 
+m_states = 5 
+actions = [0, 1] 
+ 
+rewards = [-1, -1, -1, -1, 10] 
+goal_state = 4 
+ 
+alpha = 0.1 
+gama = 0.9 
+epsilon = 0.1 
+ 
+q_table = np.zeros((m_states, len(actions))) 
+ 
+n_episodes = 1000 
+ 
+for episode in range(n_episodes): 
+    state = 0 
+ 
+    while state != goal_state: 
+ 
+        # Choose action using epsilon-greedy policy 
+        if np.random.uniform(0, 1) < epsilon: 
+            action = np.random.choice(actions) 
+        else: 
+            action = np.argmax(q_table[state]) 
+ 
+        # Take action 
+        new_state = state + 1 if action == 1 else max(0, state - 1) 
+ 
+        # Get reward 
+        reward = rewards[new_state] 
+ 
+        # Q-learning update 
+        q_table[state, action] += alpha * ( 
+            reward 
+            + gama * np.max(q_table[new_state]) 
+            - q_table[state, action] 
+        ) 
+ 
+        # Move to the new state 
+        state = new_state 
+ 
+ 
+# Find optimal path after training 
+state = 0 
+path = [state] 
+ 
+while state != goal_state: 
+    action = np.argmax(q_table[state]) 
+    state = state + 1 if action == 1 else max(0, state - 1) 
+    path.append(state) 
+
+print("Optimal path from start to goal:", path) 
+print("\nQ-table:") 
+print(q_table) 
+
+
+
+
+Sentimental Analysis:-
+
+
+import numpy as np
+from sklearn.datasets import fetch_20newsgroups
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import TfidfTransformer
+from sklearn.naive_bayes import BernoulliNB,MultinomialNB
+
+newsgroups = fetch_20newsgroups(subset='all')
+newsgroups.target_names
+newsgroups.target
+vectorizer1 = CountVectorizer(binary = True)
+vectorizer2 = CountVectorizer(binary = False)
+x1 = vectorizer1.fit_transform(newsgroups.data)
+x2 = vectorizer2.fit_transform(newsgroups.data)
+newsgroups.data[0], newsgroups.target[0]
+x1[0]
+x2[0]
+y = newsgroups.target
+
+
+from sklearn.model_selection import train_test_split
+from sklearn.naive_bayes import BernoulliNB,MultinomialNB
+
+xtrain1 , xtest1 , ytrain1 , ytest1 = train_test_split(x1,y,test_size = 0.25, random_state=42)
+bnb = BernoulliNB()
+mnb = MultinomialNB()
+
+bnb.fit(xtrain1,ytrain1)
+mnb.fit(xtrain1,ytrain1)
+
+y_pred1 = bnb.predict(xtest1)
+y_pred2 = mnb.predict(xtest1)
+
+from sklearn.metrics import accuracy_score
+print(accuracy_score(ytest1,y_pred1))
+print(accuracy_score(ytest1,y_pred2))
+
+
+
+story telling:-
+
+
+!pip install transformers 
+ 
+from transformers import pipeline 
+ 
+# Create text generation pipeline 
+generator = pipeline( 
+    'text-generation', 
+    model='gpt2' 
+) 
+ 
+# Input prompt 
+prompt = "I saw a dead body cut into pieces that I have never seen before." 
+ 
+# Generate one response 
+generated_text = generator( 
+    prompt, 
+    max_length=100, 
+    num_return_sequences=1, 
+    temperature=0.4 
+) 
+ 
+# Display first generated story 
+print(generated_text[0]["generated_text"])
+# Generate two responses 
+generated_text_1 = generator( 
+    prompt, 
+    max_length=200, 
+    num_return_sequences=2, 
+    temperature=0.7 
+) 
+ 
+# Display generated stories 
+for i, result in enumerate(generated_text_1, 1): 
+    print(f"\n--- Story {i} ---") 
+    print(result["generated_text"]) 
